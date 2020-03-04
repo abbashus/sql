@@ -30,7 +30,6 @@ import com.amazon.opendistroforelasticsearch.sql.esdomain.mapping.FieldMapping;
 import com.amazon.opendistroforelasticsearch.sql.exception.SqlFeatureNotImplementedException;
 import com.amazon.opendistroforelasticsearch.sql.executor.Format;
 import com.amazon.opendistroforelasticsearch.sql.utils.SQLFunctions;
-import com.carrotsearch.hppc.ShortCharMap;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
 import org.elasticsearch.client.Client;
@@ -115,11 +114,11 @@ public class SelectResultSet extends ResultSet {
     }
 
 
-    public SelectResultSet(Client client, Object queryResult, JSONObject cursorContext) {
+    public SelectResultSet(Client client, Object queryResult, JSONObject cursorContext, String formatType) {
         this.client = client;
         this.queryResult = queryResult;
         this.selectAll = false;
-        this.formatType = "jdbc";
+        this.formatType = formatType;
         this.columns = getColumnsFromSchema(cursorContext);
         this.schema = new Schema(null, null, columns);
         this.head = schema.getHeaders();

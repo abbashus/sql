@@ -25,8 +25,6 @@ import com.amazon.opendistroforelasticsearch.sql.executor.format.DataRows.Row;
 import com.amazon.opendistroforelasticsearch.sql.executor.format.Schema.Column;
 import com.amazon.opendistroforelasticsearch.sql.executor.adapter.QueryPlanQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.executor.adapter.QueryPlanRequestBuilder;
-import com.amazon.opendistroforelasticsearch.sql.executor.format.DataRows.Row;
-import com.amazon.opendistroforelasticsearch.sql.executor.format.Schema.Column;
 import com.amazon.opendistroforelasticsearch.sql.expression.domain.BindingTuple;
 import com.amazon.opendistroforelasticsearch.sql.query.DefaultQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.query.QueryAction;
@@ -113,7 +111,7 @@ public class Protocol {
     }
 
     private ResultSet loadResultSetForCursor(Client client, Object queryResult) {
-     return new SelectResultSet(client, queryResult, cursorContext);
+     return new SelectResultSet(client, queryResult, cursorContext, formatType);
     }
 
     private ResultSet loadResultSet(Client client, QueryStatement queryStatement, Object queryResult) {

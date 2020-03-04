@@ -16,17 +16,20 @@
 package com.amazon.opendistroforelasticsearch.sql.executor.cursor;
 
 import com.amazon.opendistroforelasticsearch.sql.executor.Format;
+import com.amazon.opendistroforelasticsearch.sql.executor.format.Protocol;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.search.ClearScrollResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.json.JSONObject;
 
+import java.util.Base64;
 import java.util.Map;
 
 import static org.elasticsearch.rest.RestStatus.OK;
@@ -48,38 +51,80 @@ public class CursorResultExecutor implements CursorRestExecutor {
     public void execute(Client client, Map<String, String> params, RestChannel channel) throws Exception {
         LOG.info("executing something inside CursorResultExecutor execute");
         String formattedResponse = execute(client, params);
-        LOG.info("{} : {}", cursorId, formattedResponse);
+//        LOG.info("{} : {}", cursorId, formattedResponse);
         channel.sendResponse(new BytesRestResponse(OK, "application/json; charset=UTF-8", formattedResponse));
     }
 
     public String execute(Client client, Map<String, String> params) throws Exception {
-        SearchResponse scrollResponse = client.prepareSearchScroll(cursorId).
-            setScroll(TimeValue.timeValueSeconds(SCROLL_TIMEOUT)).get();
-        SearchHit[] hits = scrollResponse.getHits().getHits();
-        int size = hits.length;
-        JSONObject json = new JSONObject();
+        // TODO: throw correct Exception , use tru catch if needed
+        String decodedCursorContext = new String(Base64.getDecoder().decode(cursorId));
+        JSONObject cursorJson = new JSONObject(decodedCursorContext);
 
-        if (size == 0) {
-            // TODO : close the cursor on the last page
-            LOG.info("Closing the cursor as size is {}", size);
-            ClearScrollResponse clearScrollResponse = client.prepareClearScroll().addScrollId(cursorId).get();
+        String type = cursorJson.optString("type", null); // see if it is a good case to use Optionals
+        CursorType cursorType = null;
 
-            if (clearScrollResponse.isSucceeded()) {
-                return new JSONObject().put("success", true).toString();
-            } else {
-                return new JSONObject().put("success", false).toString();
-            }
-
-        } else {
-//            XContentBuilder builder = null;
-//            builder = ElasticUtils.hitsAsStringResultZeroCopy(results, metaResults, this);
-            json.put("size", size);
-            LOG.info("new scollID : {}", scrollResponse.getScrollId());
-            json.put("cursor", scrollResponse.getScrollId());
+        if (type != null) {
+            cursorType = CursorType.valueOf(type);
         }
 
-        return json.toString();
+        if (cursorType!=null) {
+            switch(cursorType) {
+                case DEFAULT:
+                    return handleDefaultCursorRequest(client, cursorJson);
+                case AGGREGATION:
+                    return handleAggregationCursorRequest(client, cursorJson);
+                case JOIN:
+                    return handleJoinCursorRequest(client, cursorJson);
+                default: throw new ElasticsearchException("Invalid cursor Id");
+            }
+        }
+        // got this from elasticsearch when "Cannot parse scroll id" when passed a wrong scrollid
+        throw new ElasticsearchException("Invalid cursor Id");
     }
+
+        private String handleDefaultCursorRequest(Client client, JSONObject cursorContext) {
+        //validate jsonobject for all the needed fields
+        LOG.info("Inside handleDefaultCursorRequest");
+        String previousScrollId = cursorContext.getString("scrollId");
+        SearchResponse scrollResponse = client.prepareSearchScroll(previousScrollId).
+            setScroll(TimeValue.timeValueSeconds(SCROLL_TIMEOUT)).get();
+        SearchHits searchHits = scrollResponse.getHits();
+        String newScrollId = scrollResponse.getScrollId();
+
+        int pagesLeft = cursorContext.getInt("left");
+        pagesLeft--;
+
+        if (pagesLeft <=0) {
+            // TODO : close the cursor on the last page
+            LOG.info("Closing the cursor as size is {}", pagesLeft);
+            ClearScrollResponse clearScrollResponse = client.prepareClearScroll().addScrollId(newScrollId).get();
+
+            if (!clearScrollResponse.isSucceeded()) {
+                LOG.info("Problem closing the cursor context {} ", newScrollId);
+            }
+
+            Protocol protocol = new Protocol(client, searchHits, cursorContext, format.name());
+            protocol.setCursor(null);
+            return protocol.cursorFormat();
+
+        } else {
+            cursorContext.put("left", pagesLeft);
+            cursorContext.put("scrollId", newScrollId);
+            Protocol protocol = new Protocol(client, searchHits, cursorContext, format.name());
+            String cursorId = protocol.encodeCursorContext(cursorContext);
+            protocol.setCursor(cursorId);
+            return protocol.cursorFormat();
+        }
+    }
+
+    private String handleAggregationCursorRequest(Client client, JSONObject cursorContext) {
+        return "something";
+    }
+
+    private String handleJoinCursorRequest(Client client, JSONObject cursorContext) {
+        return "something";
+    }
+
 
 //    /**
 //     * Generate string by serializing SearchHits in place without any new HashMap copy
