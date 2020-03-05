@@ -15,10 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.executor.format;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCaseExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCastExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.amazon.opendistroforelasticsearch.sql.domain.ColumnTypeProvider;
 import com.amazon.opendistroforelasticsearch.sql.domain.Field;
 import com.amazon.opendistroforelasticsearch.sql.domain.JoinSelect;
@@ -28,7 +25,6 @@ import com.amazon.opendistroforelasticsearch.sql.domain.Select;
 import com.amazon.opendistroforelasticsearch.sql.domain.TableOnJoinSelect;
 import com.amazon.opendistroforelasticsearch.sql.esdomain.mapping.FieldMapping;
 import com.amazon.opendistroforelasticsearch.sql.exception.SqlFeatureNotImplementedException;
-import com.amazon.opendistroforelasticsearch.sql.executor.Format;
 import com.amazon.opendistroforelasticsearch.sql.utils.SQLFunctions;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
@@ -451,14 +447,6 @@ public class SelectResultSet extends ResultSet {
                 MethodField methodField = (MethodField) fieldMap.get(fieldName);
                 int fieldIndex = fieldNameList.indexOf(fieldName);
 
-                SQLExpr expr = methodField.getExpression();
-                if (expr instanceof SQLCastExpr) {
-                    // Since CAST expressions create an alias for a field, we need to save the original field name
-                    // for this alias for formatting data later.
-                    SQLIdentifierExpr castFieldIdentifier = (SQLIdentifierExpr) ((SQLCastExpr) expr).getExpr();
-                    fieldAliasMap.put(methodField.getAlias(), castFieldIdentifier.getName());
-                }
-
                 columns.add(
                         new Schema.Column(
                                 methodField.getAlias(),
@@ -610,14 +598,8 @@ public class SelectResultSet extends ResultSet {
                 for (Map.Entry<String, DocumentField> field : hit.getFields().entrySet()) {
                     rowSource.put(field.getKey(), field.getValue().getValue());
                 }
-                if (formatType.equalsIgnoreCase(Format.JDBC.getFormatName())) {
-                    dateFieldFormatter.applyJDBCDateFormat(rowSource);
-                }
                 result = flatNestedField(newKeys, rowSource, hit.getInnerHits());
             } else {
-                if (formatType.equalsIgnoreCase(Format.JDBC.getFormatName())) {
-                    dateFieldFormatter.applyJDBCDateFormat(rowSource);
-                }
                 result = new ArrayList<>();
                 result.add(new DataRows.Row(rowSource));
             }

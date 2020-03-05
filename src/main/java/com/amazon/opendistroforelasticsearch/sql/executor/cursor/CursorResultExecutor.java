@@ -36,7 +36,7 @@ import static org.elasticsearch.rest.RestStatus.OK;
 
 public class CursorResultExecutor implements CursorRestExecutor {
 
-    public static final int SCROLL_TIMEOUT = 120; // 2 minutes
+    public static final int SCROLL_TIMEOUT = 12000; // 2 minutes
 
     private String cursorId;
     private Format format;
@@ -103,15 +103,19 @@ public class CursorResultExecutor implements CursorRestExecutor {
                 LOG.info("Problem closing the cursor context {} ", newScrollId);
             }
 
-            Protocol protocol = new Protocol(client, searchHits, cursorContext, format.name());
+            Protocol protocol = new Protocol(client, searchHits, cursorContext, format.name().toLowerCase());
             protocol.setCursor(null);
             return protocol.cursorFormat();
 
         } else {
+            LOG.info("Generating next page, pagesLeft {}", pagesLeft);
             cursorContext.put("left", pagesLeft);
             cursorContext.put("scrollId", newScrollId);
-            Protocol protocol = new Protocol(client, searchHits, cursorContext, format.name());
+            LOG.info("New scroll ID {}", newScrollId);
+            Protocol protocol = new Protocol(client, searchHits, cursorContext, format.name().toLowerCase());
+            LOG.info("cursorContext before encoding {}", cursorContext);
             String cursorId = protocol.encodeCursorContext(cursorContext);
+            LOG.info("New cursor ID {}", cursorId);
             protocol.setCursor(cursorId);
             return protocol.cursorFormat();
         }
