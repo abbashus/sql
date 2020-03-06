@@ -117,6 +117,7 @@ public class CursorResultExecutor implements CursorRestExecutor {
             String cursorId = protocol.encodeCursorContext(cursorContext);
             LOG.info("New cursor ID {}", cursorId);
             protocol.setCursor(cursorId);
+            LOG.info("Set cursor to protocol {}", cursorId);
             return protocol.cursorFormat();
         }
     }
