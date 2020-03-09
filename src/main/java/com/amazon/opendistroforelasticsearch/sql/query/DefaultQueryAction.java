@@ -28,7 +28,7 @@ import com.amazon.opendistroforelasticsearch.sql.domain.Where;
 //import com.amazon.opendistroforelasticsearch.sql.domain.hints.Hint;
 //import com.amazon.opendistroforelasticsearch.sql.domain.hints.HintType;
 import com.amazon.opendistroforelasticsearch.sql.exception.SqlParseException;
-import com.amazon.opendistroforelasticsearch.sql.executor.cursor.CursorResultExecutor;
+//import com.amazon.opendistroforelasticsearch.sql.executor.cursor.CursorResultExecutor;
 import com.amazon.opendistroforelasticsearch.sql.executor.format.Schema;
 import com.amazon.opendistroforelasticsearch.sql.query.maker.QueryMaker;
 import com.amazon.opendistroforelasticsearch.sql.rewriter.nestedfield.NestedFieldProjection;
@@ -118,7 +118,7 @@ public class DefaultQueryAction extends QueryAction {
         setWhere(select.getWhere());
         setSorts(select.getOrderBys());
         setLimit(select.getOffset(), select.getRowCount());
-        LOG.info("offset: {}, rowcount: {}", select.getOffset() ,select.getRowCount());
+        LOG.info("offset: {}, rowcount: {}", select.getOffset(), select.getRowCount());
 
 //        if (scrollHint != null) {
 //            if (!select.isOrderdSelect()) {

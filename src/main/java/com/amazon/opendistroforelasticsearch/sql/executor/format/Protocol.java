@@ -228,7 +228,7 @@ public class Protocol {
 
         formattedOutput.put("datarows", getDataRowsAsJson());
 
-        if(!Strings.isNullOrEmpty(cursor)) {
+        if (!Strings.isNullOrEmpty(cursor)) {
             formattedOutput.put("cursor", cursor);
         }
 
