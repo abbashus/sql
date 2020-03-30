@@ -43,6 +43,14 @@ SQL query::
 	  }
 	}'
 
+	OR
+
+	curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
+    	  "transient" : {
+    	    "opendistro.sql.enabled" : "false"
+    	  }
+    	}'
+
 Result set::
 
 	{
